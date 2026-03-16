@@ -1,7 +1,8 @@
 import './index.css';
 import React, { useState } from 'react';
 import DataTableWithBar from './components/DataTableWithBar';
-import { Shield, ShieldOff, Activity, BarChart3, List } from 'lucide-react';
+import ConfirmModal from './components/ConfirmModal';
+import { Shield, Trash2, Activity, BarChart3, List } from 'lucide-react';
 
 // Имитируем данные от нашего будущего Java-сердца
 const MOCK_STATS = {
@@ -23,15 +24,6 @@ interface ControlledIP {
   addDate: string;
 }
 
-const ipColumns = [
-  { key: 'ip', label: 'IP АДРЕС' },
-  {
-    key: 'addDate',
-    label: 'ДАТА ДОБАВЛЕНИЯ',
-    render: (val: string) => <span className="text-slate-500">{val}</span>
-  }
-];
-
 const MOCK_LOGS = [
   { id: 1, time: "14:20:01", domain: "doubleclick.net", status: "Blocked", client: "192.168.1.15" },
   { id: 2, time: "14:19:45", domain: "google.com", status: "Allowed", client: "192.168.1.10" },
@@ -40,6 +32,40 @@ const MOCK_LOGS = [
 
 export default function Dashboard() {
   const [isActive, setIsActive] = useState(MOCK_STATS.active);
+  const [ipToDelete, setIpToDelete] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [ips, setIps] = useState<ControlledIP[]>(MOCK_IPs);
+
+  const ipColumns = [
+    { key: 'ip', label: 'IP АДРЕС' },
+    {
+      key: 'addDate',
+      label: 'ДАТА ДОБАВЛЕНИЯ',
+      render: (val: string) => <span className="text-slate-500">{val}</span>
+    },
+    {
+      key: 'actions',
+      label: '',
+      render: (_: any, row: ControlledIP) => (
+        <button onClick={() => openDeleteModal(row.ip)} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all active:scale-90">        
+          <Trash2 size={16} />
+        </button>
+      )
+    }
+  ];
+
+  const openDeleteModal = (ip: string) => {
+    setIpToDelete(ip);
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (ipToDelete) {
+      setIps(prev => prev.filter(item => item.ip !== ipToDelete));
+      setIpToDelete(null);
+      setIsModalOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-6 font-sans">
@@ -67,9 +93,17 @@ export default function Dashboard() {
       <DataTableWithBar<ControlledIP> // Указываем тип данных явно
         title="IP для контроля"
         icon={Shield}
-        data={MOCK_IPs}
+        data={ips}
         columns={ipColumns}
         onAdd={() => console.log('Добавляем...')}
+      />
+
+      <ConfirmModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Внимание!"
+        message={`Удалить ${ipToDelete} из списка обрабатываемых?`}
       />
 
       {/* Logs Table */}
