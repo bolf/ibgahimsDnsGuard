@@ -1,5 +1,6 @@
 import './index.css';
 import React, { useState } from 'react';
+import DataTableWithBar from './components/DataTableWithBar';
 import { Shield, ShieldOff, Activity, BarChart3, List } from 'lucide-react';
 
 // Имитируем данные от нашего будущего Java-сердца
@@ -9,6 +10,27 @@ const MOCK_STATS = {
   totalQueries: 8540,
   uptime: "12ч 43м"
 };
+
+const MOCK_IPs = [
+  { ip: "192.168.1.11", addDate: '15-03-2026' },
+  { ip: "192.168.1.13", addDate: '15-03-2026' },
+  { ip: "192.168.1.15", addDate: '15-03-2026' },
+  { ip: "192.168.1.17", addDate: '15-03-2026' },
+];
+
+interface ControlledIP {
+  ip: string;
+  addDate: string;
+}
+
+const ipColumns = [
+  { key: 'ip', label: 'IP АДРЕС' },
+  {
+    key: 'addDate',
+    label: 'ДАТА ДОБАВЛЕНИЯ',
+    render: (val: string) => <span className="text-slate-500">{val}</span>
+  }
+];
 
 const MOCK_LOGS = [
   { id: 1, time: "14:20:01", domain: "doubleclick.net", status: "Blocked", client: "192.168.1.15" },
@@ -26,11 +48,10 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <Shield className="text-emerald-400" /> IbrahimsDnsGuard
         </h1>
-        <button 
+        <button
           onClick={() => setIsActive(!isActive)}
-          className={`px-6 py-2 rounded-full font-bold transition ${
-            isActive ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
-          }`}
+          className={`px-6 py-2 rounded-full font-bold transition ${isActive ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
+            }`}
         >
           {isActive ? 'ЗАЩИТА ВКЛ' : 'ЗАЩИТА ВЫКЛ'}
         </button>
@@ -43,10 +64,13 @@ export default function Dashboard() {
         <StatCard icon={<BarChart3 />} title="Аптайм" value={MOCK_STATS.uptime} color="amber" />
       </div>
 
-      {/* Logs Table */}
-      <div>
-
-      </div>
+      <DataTableWithBar<ControlledIP> // Указываем тип данных явно
+        title="IP для контроля"
+        icon={Shield}
+        data={MOCK_IPs}
+        columns={ipColumns}
+        onAdd={() => console.log('Добавляем...')}
+      />
 
       {/* Logs Table */}
       <div className="bg-slate-800 rounded-xl p-6 shadow-xl">
@@ -69,9 +93,8 @@ export default function Dashboard() {
                   <td className="py-3 text-slate-400 text-sm">{log.time}</td>
                   <td className="font-mono text-sm">{log.domain}</td>
                   <td>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                      log.status === 'Blocked' ? 'bg-rose-900/50 text-rose-400' : 'bg-emerald-900/50 text-emerald-400'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${log.status === 'Blocked' ? 'bg-rose-900/50 text-rose-400' : 'bg-emerald-900/50 text-emerald-400'
+                      }`}>
                       {log.status}
                     </span>
                   </td>
