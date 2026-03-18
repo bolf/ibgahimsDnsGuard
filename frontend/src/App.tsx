@@ -2,6 +2,8 @@ import './index.css';
 import React, { useState } from 'react';
 import DataTableWithBar from './components/DataTableWithBar';
 import ConfirmModal from './components/ConfirmModal';
+import InputModal from './components/InputModal';
+import {isValidLocalIP} from './utils/validators';
 import { Shield, Trash2, Activity, BarChart3, List } from 'lucide-react';
 
 // Имитируем данные от нашего будущего Java-сердца
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const [ipToDelete, setIpToDelete] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ips, setIps] = useState<ControlledIP[]>(MOCK_IPs);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const ipColumns = [
     { key: 'ip', label: 'IP АДРЕС' },
@@ -47,12 +50,22 @@ export default function Dashboard() {
       key: 'actions',
       label: '',
       render: (_: any, row: ControlledIP) => (
-        <button onClick={() => openDeleteModal(row.ip)} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all active:scale-90">        
+        <button onClick={() => openDeleteModal(row.ip)} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all active:scale-90">
           <Trash2 size={16} />
         </button>
       )
     }
   ];
+
+  // Функция сохранения (она не меняется)
+  const handleAddIp = (newIp: string) => {
+    const newEntry: ControlledIP = { 
+      ip: newIp, 
+      addDate: new Date().toLocaleDateString('ru-RU') 
+    };
+    setIps(prev => [...prev, newEntry]);
+    setIsAddModalOpen(false);
+  };
 
   const openDeleteModal = (ip: string) => {
     setIpToDelete(ip);
@@ -90,15 +103,30 @@ export default function Dashboard() {
         <StatCard icon={<BarChart3 />} title="Аптайм" value={MOCK_STATS.uptime} color="amber" />
       </div>
 
-      <DataTableWithBar<ControlledIP> // Указываем тип данных явно
+      <DataTableWithBar<ControlledIP> 
         title="IP для контроля"
         icon={Shield}
         data={ips}
         columns={ipColumns}
-        onAdd={() => console.log('Добавляем...')}
+        onAdd={() => setIsAddModalOpen(true)}
       />
 
-      <ConfirmModal 
+      <InputModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddIp}
+        title="Добавить устройство"
+        icon={Shield}
+        placeholder="Напр. 192.168.1.50"
+        // Передаем логику проверки прямо в пропсах
+        validate={(val) => 
+          isValidLocalIP(val) 
+            ? true 
+            : "Введите корректный локальный IP (192.168.x.x или 10.x.x.x)"
+        }
+      />
+
+      <ConfirmModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={confirmDelete}
