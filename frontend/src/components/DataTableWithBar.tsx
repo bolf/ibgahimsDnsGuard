@@ -18,7 +18,7 @@ interface DataTableProps<T> {
   onRefresh?: () => void;
 }
 
-// Используем Generic <T>, чтобы компонент понимал тип любых данных
+// Используем Generic <T>
 const DataTableWithBar = <T extends Record<string, any>>({
   title,
   icon: Icon,
