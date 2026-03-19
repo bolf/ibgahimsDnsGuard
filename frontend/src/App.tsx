@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import DataTableWithBar from './components/DataTableWithBar';
 import ConfirmModal from './components/ConfirmModal';
 import InputModal from './components/InputModal';
-import {isValidLocalIP} from './utils/validators';
-import { Shield, Trash2, Activity, BarChart3, List } from 'lucide-react';
+import { isValidLocalIP } from './utils/validators';
+import { Shield, Trash2, Activity, BarChart3, List, Globe } from 'lucide-react';
 
 // Имитируем данные от нашего будущего Java-сердца
 const MOCK_STATS = {
@@ -26,18 +26,40 @@ interface ControlledIP {
   addDate: string;
 }
 
+interface BlockedResource {
+  id: string;
+  resource: string;
+  blockDate: string;
+  requestCount: number;
+}
+
 const MOCK_LOGS = [
   { id: 1, time: "14:20:01", domain: "doubleclick.net", status: "Blocked", client: "192.168.1.15" },
   { id: 2, time: "14:19:45", domain: "google.com", status: "Allowed", client: "192.168.1.10" },
   { id: 3, time: "14:18:12", domain: "track.evil.com", status: "Blocked", client: "127.0.0.1" },
 ];
 
+const MOCK_RESOURCES: BlockedResource[] = [
+  { id: '1', resource: 'doubleclick.net', blockDate: '10.05.2024', requestCount: 1250 },
+  { id: '2', resource: 'analytics.google.com', blockDate: '11.05.2024', requestCount: 840 },
+  { id: '3', resource: 'facebook.com', blockDate: '12.05.2024', requestCount: 3100 }
+];
+
 export default function Dashboard() {
+  type DataType = 'ip' | 'resource';
   const [isActive, setIsActive] = useState(MOCK_STATS.active);
   const [ipToDelete, setIpToDelete] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ips, setIps] = useState<ControlledIP[]>(MOCK_IPs);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Состояние для модалки удаления
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string, type: DataType } | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [blockedResources, setBlockedResources] = useState<BlockedResource[]>(MOCK_RESOURCES);
+
+  const [isAddIpOpen, setIsAddIpOpen] = useState(false);
+  const [isAddResourceOpen, setIsAddResourceOpen] = useState(false);
 
   const ipColumns = [
     { key: 'ip', label: 'IP АДРЕС' },
@@ -50,26 +72,82 @@ export default function Dashboard() {
       key: 'actions',
       label: '',
       render: (_: any, row: ControlledIP) => (
-        <button onClick={() => openDeleteModal(row.ip)} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all active:scale-90">
+        <button onClick={() => openDeleteModal(row.ip, 'ip')} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all active:scale-90">
           <Trash2 size={16} />
         </button>
       )
     }
   ];
 
-  // Функция сохранения (она не меняется)
+  const blockedResourceColumns = [
+    { key: 'resource', label: 'Ресурс' },
+    { key: 'blockDate', label: 'Дата блокировки' },
+    {
+      key: 'requestCount',
+      label: 'Заблокировано',
+      render: (val: number) => (
+        <span className="bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full text-xs font-mono">
+          {val.toLocaleString()}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: '',
+      render: (_: any, row: BlockedResource) => (
+        <button
+          onClick={() => openDeleteModal(row.id, 'resource')}
+          className="text-slate-500 hover:text-red-400 transition-colors"
+        >
+          <Trash2 size={16} />
+        </button>
+      )
+    }
+  ];
+
+
   const handleAddIp = (newIp: string) => {
-    const newEntry: ControlledIP = { 
-      ip: newIp, 
-      addDate: new Date().toLocaleDateString('ru-RU') 
+    const newEntry: ControlledIP = {
+      ip: newIp,
+      addDate: new Date().toLocaleDateString('ru-RU')
     };
     setIps(prev => [...prev, newEntry]);
     setIsAddModalOpen(false);
   };
 
-  const openDeleteModal = (ip: string) => {
-    setIpToDelete(ip);
-    setIsModalOpen(true);
+  const openDeleteModal = (id: string, type: DataType) => {
+    setDeleteTarget({ id, type });
+    setIsConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+
+    const { id, type } = deleteTarget;
+
+    if (type === 'ip') {
+      setIps(prev => prev.filter(item => item.ip !== id));
+    } else if (type === 'resource') {
+      setBlockedResources(prev => prev.filter(item => item.id !== id));
+    }
+
+    setIsConfirmOpen(false);
+    setDeleteTarget(null);
+  };
+
+  const handleAddResource = (domain: string) => {
+    const newResource: BlockedResource = {
+      id: Date.now().toString(),
+      resource: domain.toLowerCase(),
+      blockDate: new Date().toLocaleDateString('ru-RU'),
+      requestCount: 0
+    };
+
+    // Обновляем состояние (Immutability!)
+    setBlockedResources(prev => [...prev, newResource]);
+
+    // Закрываем портал
+    setIsAddResourceOpen(false);
   };
 
   const confirmDelete = () => {
@@ -103,15 +181,27 @@ export default function Dashboard() {
         <StatCard icon={<BarChart3 />} title="Аптайм" value={MOCK_STATS.uptime} color="amber" />
       </div>
 
-      <DataTableWithBar<ControlledIP> 
-        title="IP для контроля"
-        icon={Shield}
-        data={ips}
-        columns={ipColumns}
-        onAdd={() => setIsAddModalOpen(true)}
-      />
+      <div className="flex flex-col lg:flex-row gap-6 p-6">
+        <DataTableWithBar<ControlledIP>
+          title="IP для контроля"
+          icon={Shield}
+          data={ips}
+          columns={ipColumns}
+          onAdd={() => setIsAddModalOpen(true)}
+        />
 
-      <InputModal 
+        <div className="flex-1">
+          <DataTableWithBar<BlockedResource>
+            title="Блокируемые ресурсы"
+            icon={Globe}
+            data={blockedResources}
+            columns={blockedResourceColumns}
+            onAdd={() => setIsAddResourceOpen(true)}
+          />
+        </div>
+      </div>
+
+      <InputModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleAddIp}
@@ -119,19 +209,29 @@ export default function Dashboard() {
         icon={Shield}
         placeholder="Напр. 192.168.1.50"
         // Передаем логику проверки прямо в пропсах
-        validate={(val) => 
-          isValidLocalIP(val) 
-            ? true 
+        validate={(val) =>
+          isValidLocalIP(val)
+            ? true
             : "Введите корректный локальный IP (192.168.x.x или 10.x.x.x)"
         }
       />
 
+      <InputModal
+        isOpen={isAddResourceOpen}
+        onClose={() => setIsAddResourceOpen(false)}
+        onSave={handleAddResource}
+        title="Заблокировать домен"
+        icon={Globe}
+        placeholder="напр. doubleclick.net"
+        validate={(val) => val.includes('.') ? true : "Введите корректный домен"}
+      />
+
       <ConfirmModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Внимание!"
-        message={`Удалить ${ipToDelete} из списка обрабатываемых?`}
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete} 
+        title="Подтверждение удаления"
+        message={`Вы действительно хотите удалить ${deleteTarget?.type === 'ip' ? 'IP' : 'ресурс'} ${deleteTarget?.id}?`}
       />
 
       {/* Logs Table */}
