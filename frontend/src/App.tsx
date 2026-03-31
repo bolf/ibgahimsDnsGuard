@@ -5,45 +5,9 @@ import ConfirmModal from './components/ConfirmModal';
 import InputModal from './components/InputModal';
 import { isValidLocalIP } from './utils/validators';
 import { Shield, Trash2, Activity, BarChart3, List, Globe } from 'lucide-react';
+import { ControlledIP, BlockedResource, DataType } from './types/dns';
+import { MOCK_IPs, MOCK_RESOURCES, MOCK_STATS } from './data/mocks';
 
-// Имитируем данные от нашего будущего Java-сердца
-const MOCK_STATS = {
-  active: true,
-  blockedCount: 1243,
-  totalQueries: 8540,
-  uptime: "12ч 43м"
-};
-
-const MOCK_IPs = [
-  { ip: "192.168.1.11", addDate: '15-03-2026' },
-  { ip: "192.168.1.13", addDate: '15-03-2026' },
-  { ip: "192.168.1.15", addDate: '15-03-2026' },
-  { ip: "192.168.1.17", addDate: '15-03-2026' },
-];
-
-interface ControlledIP {
-  ip: string;
-  addDate: string;
-}
-
-interface BlockedResource {
-  id: string;
-  resource: string;
-  blockDate: string;
-  requestCount: number;
-}
-
-const MOCK_LOGS = [
-  { id: 1, time: "14:20:01", domain: "doubleclick.net", status: "Blocked", client: "192.168.1.15" },
-  { id: 2, time: "14:19:45", domain: "google.com", status: "Allowed", client: "192.168.1.10" },
-  { id: 3, time: "14:18:12", domain: "track.evil.com", status: "Blocked", client: "127.0.0.1" },
-];
-
-const MOCK_RESOURCES: BlockedResource[] = [
-  { id: '1', resource: 'doubleclick.net', blockDate: '10.05.2024', requestCount: 1250 },
-  { id: '2', resource: 'analytics.google.com', blockDate: '11.05.2024', requestCount: 840 },
-  { id: '3', resource: 'facebook.com', blockDate: '12.05.2024', requestCount: 3100 }
-];
 
 export default function Dashboard() {
   type DataType = 'ip' | 'resource';
@@ -248,22 +212,7 @@ export default function Dashboard() {
                 <th>Статус</th>
                 <th>Клиент</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700">
-              {MOCK_LOGS.map(log => (
-                <tr key={log.id} className="hover:bg-slate-750 transition">
-                  <td className="py-3 text-slate-400 text-sm">{log.time}</td>
-                  <td className="font-mono text-sm">{log.domain}</td>
-                  <td>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${log.status === 'Blocked' ? 'bg-rose-900/50 text-rose-400' : 'bg-emerald-900/50 text-emerald-400'
-                      }`}>
-                      {log.status}
-                    </span>
-                  </td>
-                  <td className="text-slate-400 text-sm">{log.client}</td>
-                </tr>
-              ))}
-            </tbody>
+            </thead>          
           </table>
         </div>
       </div>
